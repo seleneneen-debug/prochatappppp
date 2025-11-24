@@ -1,35 +1,53 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { db } from '../firebase-config';
+import {
+    collection,
+    addDoc,
+    where,
+    serverTimestamp,
+    onSnapshot,
+    query,
+    orderBy
+} from "firebase/firestore";
 
-function ChatScreen({ socket, username, room }) {
+function ChatScreen({ room, username }) { // Removed socket prop
     const [currentMessage, setCurrentMessage] = useState("");
     const [messageList, setMessageList] = useState([]);
     const messagesEndRef = useRef(null);
 
-    const sendMessage = async () => {
-        if (currentMessage !== "") {
-            const messageData = {
-                room: room,
-                author: username,
-                message: currentMessage,
-                time: new Date(Date.now()).getHours() + ":" + new Date(Date.now()).getMinutes(),
-            };
-
-            await socket.emit("send_message", messageData);
-            // We don't add it manually here because we listen for our own message broadcast
-            setCurrentMessage("");
-        }
-    };
+    const messagesRef = collection(db, "messages");
 
     useEffect(() => {
-        const handler = (data) => {
-            setMessageList((list) => [...list, data]);
-        };
-        socket.on("receive_message", handler);
+        const queryMessages = query(
+            messagesRef,
+            where("room", "==", room),
+            orderBy("createdAt")
+        );
 
-        return () => {
-            socket.off("receive_message", handler);
-        };
-    }, [socket]);
+        const unsubscribe = onSnapshot(queryMessages, (snapshot) => {
+            let messages = [];
+            snapshot.forEach((doc) => {
+                messages.push({ ...doc.data(), id: doc.id });
+            });
+            setMessageList(messages);
+        });
+
+        return () => unsubscribe();
+    }, [room]);
+
+    const sendMessage = async () => {
+        if (currentMessage === "") return;
+
+        await addDoc(messagesRef, {
+            message: currentMessage,
+            author: username,
+            room: room,
+            createdAt: serverTimestamp(),
+            time: new Date(Date.now()).getHours() + ":" + new Date(Date.now()).getMinutes()
+        });
+
+        setCurrentMessage("");
+    };
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -44,12 +62,12 @@ function ChatScreen({ socket, username, room }) {
                 </div>
             </div>
             <div className="chat-body">
-                {messageList.map((messageContent, index) => {
+                {messageList.map((messageContent) => {
                     const isMyMessage = username === messageContent.author;
                     return (
                         <div
                             className={`message-container ${isMyMessage ? "you" : "other"}`}
-                            key={index}
+                            key={messageContent.id}
                         >
                             <div className="message-content">
                                 <div className="message-meta">
