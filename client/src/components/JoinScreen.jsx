@@ -1,38 +1,44 @@
 import React, { useState } from 'react';
+import { db } from '../firebase-config';
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 
-function JoinScreen({ joinRoom }) {
+function JoinScreen({ joinChat }) {
     const [username, setUsername] = useState("");
-    const [room, setRoom] = useState("");
 
-    const handleJoin = () => {
-        if (username !== "" && room !== "") {
-            joinRoom(username, room);
+    const handleJoin = async () => {
+        if (username !== "") {
+            // Send "User Joined" system message
+            try {
+                await addDoc(collection(db, "messages"), {
+                    message: `${username} joined the chat`,
+                    author: "System",
+                    createdAt: serverTimestamp(),
+                    time: new Date(Date.now()).getHours() + ":" + new Date(Date.now()).getMinutes()
+                });
+            } catch (error) {
+                console.error("Error sending join message:", error);
+            }
+
+            joinChat(username);
         }
     };
 
     return (
         <div className="join-container">
             <div className="join-card">
-                <h1>Welcome Back</h1>
-                <p>Enter your details to join the chat</p>
+                <h1>Global Chat</h1>
+                <p>Enter your name to join everyone</p>
                 <div className="input-group">
                     <input
                         type="text"
                         placeholder="Username"
                         onChange={(event) => setUsername(event.target.value)}
-                    />
-                </div>
-                <div className="input-group">
-                    <input
-                        type="text"
-                        placeholder="Room ID"
-                        onChange={(event) => setRoom(event.target.value)}
                         onKeyPress={(event) => {
                             event.key === "Enter" && handleJoin();
                         }}
                     />
                 </div>
-                <button onClick={handleJoin}>Join Room</button>
+                <button onClick={handleJoin}>Join Chat</button>
             </div>
         </div>
     );
