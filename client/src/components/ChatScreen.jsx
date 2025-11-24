@@ -3,14 +3,13 @@ import { db } from '../firebase-config';
 import {
     collection,
     addDoc,
-    where,
     serverTimestamp,
     onSnapshot,
     query,
     orderBy
 } from "firebase/firestore";
 
-function ChatScreen({ room, username }) {
+function ChatScreen({ username }) {
     const [currentMessage, setCurrentMessage] = useState("");
     const [messageList, setMessageList] = useState([]);
     const messagesEndRef = useRef(null);
@@ -18,9 +17,9 @@ function ChatScreen({ room, username }) {
     const messagesRef = collection(db, "messages");
 
     useEffect(() => {
+        // Simple query: Order by time only. No 'where' clause = No complex index needed!
         const queryMessages = query(
             messagesRef,
-            where("room", "==", room),
             orderBy("createdAt")
         );
 
@@ -33,23 +32,25 @@ function ChatScreen({ room, username }) {
         });
 
         return () => unsubscribe();
-    }, [room]);
+    }, []);
 
     const sendMessage = async () => {
         if (currentMessage === "") return;
 
+        const msgToSend = currentMessage;
+        setCurrentMessage(""); // Clear input IMMEDIATELY for better UX
+
         try {
             await addDoc(messagesRef, {
-                message: currentMessage,
+                message: msgToSend,
                 author: username,
-                room: room,
                 createdAt: serverTimestamp(),
                 time: new Date(Date.now()).getHours() + ":" + new Date(Date.now()).getMinutes()
             });
-            setCurrentMessage("");
         } catch (error) {
             console.error("Error sending message:", error);
             alert("Error sending message: " + error.message);
+            setCurrentMessage(msgToSend); // Restore message if failed
         }
     };
 
@@ -62,12 +63,22 @@ function ChatScreen({ room, username }) {
             <div className="chat-header">
                 <div className="header-info">
                     <div className="live-indicator"></div>
-                    <p>Live Chat: <strong>{room}</strong></p>
+                    <p>Global Chat</p>
                 </div>
             </div>
             <div className="chat-body">
                 {messageList.map((messageContent) => {
+                    const isSystem = messageContent.author === "System";
                     const isMyMessage = username === messageContent.author;
+
+                    if (isSystem) {
+                        return (
+                            <div className="system-message" key={messageContent.id}>
+                                <p>{messageContent.message}</p>
+                            </div>
+                        );
+                    }
+
                     return (
                         <div
                             className={`message-container ${isMyMessage ? "you" : "other"}`}

@@ -5,13 +5,11 @@ import ChatScreen from './components/ChatScreen';
 
 function App() {
   const [username, setUsername] = useState("");
-  const [room, setRoom] = useState("");
   const [showChat, setShowChat] = useState(false);
 
-  const joinRoom = (user, roomID) => {
-    if (user !== "" && roomID !== "") {
+  const joinChat = (user) => {
+    if (user !== "") {
       setUsername(user);
-      setRoom(roomID);
       setShowChat(true);
     }
   };
@@ -19,9 +17,9 @@ function App() {
   return (
     <div className="App">
       {!showChat ? (
-        <JoinScreen joinRoom={joinRoom} />
+        <JoinScreen joinChat={joinChat} />
       ) : (
-        <ChatScreen username={username} room={room} />
+        <ChatScreen username={username} />
       )}
     </div>
   );
