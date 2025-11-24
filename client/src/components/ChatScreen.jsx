@@ -10,7 +10,7 @@ import {
     orderBy
 } from "firebase/firestore";
 
-function ChatScreen({ room, username }) { // Removed socket prop
+function ChatScreen({ room, username }) {
     const [currentMessage, setCurrentMessage] = useState("");
     const [messageList, setMessageList] = useState([]);
     const messagesEndRef = useRef(null);
@@ -38,15 +38,19 @@ function ChatScreen({ room, username }) { // Removed socket prop
     const sendMessage = async () => {
         if (currentMessage === "") return;
 
-        await addDoc(messagesRef, {
-            message: currentMessage,
-            author: username,
-            room: room,
-            createdAt: serverTimestamp(),
-            time: new Date(Date.now()).getHours() + ":" + new Date(Date.now()).getMinutes()
-        });
-
-        setCurrentMessage("");
+        try {
+            await addDoc(messagesRef, {
+                message: currentMessage,
+                author: username,
+                room: room,
+                createdAt: serverTimestamp(),
+                time: new Date(Date.now()).getHours() + ":" + new Date(Date.now()).getMinutes()
+            });
+            setCurrentMessage("");
+        } catch (error) {
+            console.error("Error sending message:", error);
+            alert("Error sending message: " + error.message);
+        }
     };
 
     useEffect(() => {
