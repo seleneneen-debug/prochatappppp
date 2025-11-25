@@ -7,7 +7,10 @@ function JoinScreen({ joinChat }) {
 
     const handleJoin = async () => {
         if (username !== "") {
-            // Send "User Joined" system message
+            // Join chat immediately
+            joinChat(username);
+
+            // Try to send "User Joined" system message (non-blocking)
             try {
                 await addDoc(collection(db, "messages"), {
                     message: `${username} joined the chat`,
@@ -17,9 +20,8 @@ function JoinScreen({ joinChat }) {
                 });
             } catch (error) {
                 console.error("Error sending join message:", error);
+                // Don't block - user is already in chat
             }
-
-            joinChat(username);
         }
     };
 
